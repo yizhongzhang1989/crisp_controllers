@@ -115,6 +115,12 @@ private:
   void setStiffnessAndDamping();
 
   /**
+   * @brief Get the current state of the robot from hardware interfaces and update internal variables
+   * @param initialize If set to true, initialize the exponential moving average filter with the current state 
+   */
+  void updateCurrentState(bool initialize = false);
+
+  /**
    * @brief Reads the target pose in realtime loop from the buffer and parses it to be used in the controller.
    */
   void parse_target_pose_();
@@ -199,6 +205,10 @@ private:
   pinocchio::SE3 end_effector_pose;
   /** @brief End effector Jacobian matrix */
   pinocchio::Data::Matrix6x J;
+  /** @brief End effector Jacobian matrix pseudoinverse */
+  Eigen::MatrixXd J_pinv;
+  /** @brief Joint-space identity matrix */
+  Eigen::MatrixXd Id_nv;
 
   /** @brief Friction parameters 1 of size nv */
   Eigen::VectorXd fp1;
