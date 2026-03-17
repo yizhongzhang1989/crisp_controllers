@@ -200,6 +200,22 @@ CartesianController::update(const rclcpp::Time & time, const rclcpp::Duration & 
 
   tau_previous = tau_d;
 
+  // Publish commanded torques as JointState with joint names
+  if (realtime_tau_d_pub_) {
+    sensor_msgs::msg::JointState tau_msg;
+    tau_msg.header.stamp = time;
+    tau_msg.name = params_.joints;
+    tau_msg.effort.assign(tau_d.data(), tau_d.data() + tau_d.size());
+#if REALTIME_TOOLS_NEW_API
+    realtime_tau_d_pub_->try_publish(tau_msg);
+#else
+    if (realtime_tau_d_pub_->trylock()) {
+      realtime_tau_d_pub_->msg_ = tau_msg;
+      realtime_tau_d_pub_->unlockAndPublish();
+    }
+#endif
+  }
+
   params_listener_->refresh_dynamic_parameters();
   params_ = params_listener_->get_params();
   setStiffnessAndDamping();
@@ -373,6 +389,12 @@ CartesianController::on_configure(const rclcpp_lifecycle::State & /*previous_sta
   wrench_sub_ = get_node()->create_subscription<geometry_msgs::msg::WrenchStamped>(
     "target_wrench", rclcpp::QoS(1), target_wrench_callback);
 
+  tau_d_pub_ = get_node()->create_publisher<sensor_msgs::msg::JointState>(
+    "commanded_torques", rclcpp::SystemDefaultsQoS());
+  realtime_tau_d_pub_ =
+    std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(
+      tau_d_pub_);
+
   // Initialize all control vectors with appropriate dimensions
   tau_task = Eigen::VectorXd::Zero(model_.nv);
   tau_joint_limits = Eigen::VectorXd::Zero(model_.nv);
@@ -519,6 +541,7 @@ CartesianController::on_activate(const rclcpp_lifecycle::State & /*previous_stat
   desired_orientation_ = target_orientation_;
 
   RCLCPP_INFO(get_node()->get_logger(), "Controller activated.");
+
   return CallbackReturn::SUCCESS;
 }
 

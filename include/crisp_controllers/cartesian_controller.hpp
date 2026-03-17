@@ -28,6 +28,7 @@
 
 #include <sensor_msgs/msg/joint_state.hpp>
 #include "realtime_tools/realtime_buffer.hpp"
+#include "realtime_tools/realtime_publisher.h"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -102,6 +103,10 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_sub_;
   /** @brief Subscription for target wrench messages */
   rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_sub_;
+
+  /** @brief Publisher for commanded torques */
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr tau_d_pub_;
+  std::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>> realtime_tau_d_pub_;
 
   /** @brief Flag to indicate if multiple publishers detected */
   bool multiple_publishers_detected_;
